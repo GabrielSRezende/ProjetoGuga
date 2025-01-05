@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk, ImageEnhance
-from Telas.tela_produtos import ProdutoFrame
+from Telas.tela_servicos import ServicoFrame
+from Telas.tela_vendas import VendaFrame
 
 
 class MenuFrame(ctk.CTkFrame):
@@ -110,11 +111,13 @@ class MenuFrame(ctk.CTkFrame):
 
     def abrir_produtos(self):
         self.pack_forget()  # Esconde o menu atual
-        self.tela_produtos = ProdutoFrame(master=self.master, voltar_callback=self.mostrar_menu)
+        self.tela_produtos = ServicoFrame(master=self.master, voltar_callback=self.mostrar_menu)
         self.tela_produtos.pack(fill="both", expand=True)
 
     def abrir_vendas(self):
-        print("Abrindo Vendas...")
+        self.pack_forget()  # Esconde o menu atual
+        self.tela_produtos = VendaFrame(master=self.master, voltar_callback=self.mostrar_menu)
+        self.tela_produtos.pack(fill="both", expand=True)
 
     def abrir_graficos(self):
         print("Abrindo Gráficos...")

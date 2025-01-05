@@ -3,7 +3,7 @@ from tkinter import messagebox, Toplevel
 import sqlite3
 
 
-class ProdutoFrame(ctk.CTkFrame):
+class ServicoFrame(ctk.CTkFrame):
     def __init__(self, master, voltar_callback):
         super().__init__(master)
         self.configure(fg_color="white")
@@ -18,7 +18,7 @@ class ProdutoFrame(ctk.CTkFrame):
 
         self.grid_rowconfigure(0, weight=0)  # Linha do título
         self.grid_rowconfigure(1, weight=0)  # Linha do botão "Adicionar Produto"
-        self.grid_rowconfigure(2, weight=0)  # Linha da lista de produtos
+        self.grid_rowconfigure(2, weight=0)  # Linha da lista de servicos
         self.grid_rowconfigure(3, weight=0)  # Linha da navegação de página
         self.grid_rowconfigure(4, weight=1)  # Linha vazia para ocupar o restante do espaço
         self.grid_rowconfigure(5, weight=0)  # Linha do botão "Voltar"
@@ -30,7 +30,7 @@ class ProdutoFrame(ctk.CTkFrame):
     def criar_tela_produto(self):
         title_label = ctk.CTkLabel(
             self,
-            text="Gerenciamento de Produtos",
+            text="Gerenciamento de Serviços",
             font=("Verdana", 36, "bold"),
             text_color="#fcb333",
         )
@@ -38,7 +38,7 @@ class ProdutoFrame(ctk.CTkFrame):
 
         btn_adicionar = ctk.CTkButton(
             self,
-            text="Adicionar Produto",
+            text="Adicionar Serviço",
             width=200,
             height=40,
             font=("Verdana", 14),
@@ -151,7 +151,7 @@ class ProdutoFrame(ctk.CTkFrame):
         # Agora, o formulário começa invisível, e será mostrado somente quando necessário
         self.form_frame.grid_remove()  # O formulário começa invisível
 
-        self.carregar_produtos()
+        self.carregar_servicos()
 
     def cancelar_formulario(self):
         """Função para cancelar e fechar o formulário"""
@@ -165,14 +165,14 @@ class ProdutoFrame(ctk.CTkFrame):
         self.entry_nome.delete(0, ctk.END)
         self.entry_descricao.delete(0, ctk.END)
 
-    def carregar_produtos(self):
+    def carregar_servicos(self):
         for widget in self.lista_frame.winfo_children():
             widget.destroy()
 
         conexao = sqlite3.connect("dados.db")
         cursor = conexao.cursor()
-        cursor.execute("SELECT id, nome, descricao, data_cadastro FROM produtos WHERE status = 1")
-        produtos = cursor.fetchall()
+        cursor.execute("SELECT id, nome, descricao, data_cadastro FROM servicos WHERE status = 1")
+        servicos = cursor.fetchall()
         conexao.close()
 
         headers = ["ID", "Nome", "Descrição", "Data Cadastro", "Ações"]
@@ -182,7 +182,7 @@ class ProdutoFrame(ctk.CTkFrame):
             lbl = ctk.CTkLabel(header_frame, text=header, font=("Verdana", 12, "bold"), text_color="white")
             lbl.pack(padx=5, pady=5)
 
-        self.produtos = produtos
+        self.servicos = servicos
         self.update_table()
 
     def update_table(self):
@@ -192,7 +192,7 @@ class ProdutoFrame(ctk.CTkFrame):
 
         start_idx = self.current_page * self.page_size
         end_idx = start_idx + self.page_size
-        page_data = self.produtos[start_idx:end_idx]
+        page_data = self.servicos[start_idx:end_idx]
 
         for i, produto in enumerate(page_data, start=1):
             for col, valor in enumerate(produto):
@@ -230,7 +230,7 @@ class ProdutoFrame(ctk.CTkFrame):
         self.page_label.configure(text=f"Página {self.current_page + 1}")
 
     def next_page(self):
-        if (self.current_page + 1) * self.page_size < len(self.produtos):
+        if (self.current_page + 1) * self.page_size < len(self.servicos):
             self.current_page += 1
             self.update_table()
 
@@ -242,12 +242,12 @@ class ProdutoFrame(ctk.CTkFrame):
     def inativar_produto(self, produto_id):
         conexao = sqlite3.connect("dados.db")
         cursor = conexao.cursor()
-        cursor.execute("UPDATE produtos SET status = 0 WHERE id = ?", (produto_id,))
+        cursor.execute("UPDATE servicos SET status = 0 WHERE id = ?", (produto_id,))
         conexao.commit()
         conexao.close()
 
         messagebox.showinfo("Sucesso", "Produto inativado com sucesso!")
-        self.carregar_produtos()
+        self.carregar_servicos()
 
     def toggle_form(self, produto=None):
         if self.is_form_visible:
@@ -276,7 +276,7 @@ class ProdutoFrame(ctk.CTkFrame):
             conexao = sqlite3.connect("dados.db")
             cursor = conexao.cursor()
             cursor.execute(
-                "UPDATE produtos SET nome = ?, descricao = ? WHERE id = ?",
+                "UPDATE servicos SET nome = ?, descricao = ? WHERE id = ?",
                 (nome, descricao, self.editing_product[0]),
             )
             conexao.commit()
@@ -288,7 +288,7 @@ class ProdutoFrame(ctk.CTkFrame):
             conexao = sqlite3.connect("dados.db")
             cursor = conexao.cursor()
             cursor.execute(
-                "INSERT INTO produtos (nome, descricao, status) VALUES (?, ?, 1)",
+                "INSERT INTO servicos (nome, descricao, status) VALUES (?, ?, 1)",
                 (nome, descricao),
             )
             conexao.commit()
@@ -297,4 +297,4 @@ class ProdutoFrame(ctk.CTkFrame):
             messagebox.showinfo("Sucesso", "Produto adicionado com sucesso!")
             self.toggle_form()  # Fecha o formulário após salvar
 
-        self.carregar_produtos()
+        self.carregar_servicos()
