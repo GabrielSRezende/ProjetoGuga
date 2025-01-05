@@ -4,6 +4,7 @@ import sqlite3
 
 class VendaFrame(ctk.CTkFrame):
     def __init__(self, master, voltar_callback):
+        self.servicos_dict = {}
         super().__init__(master)
         self.configure(fg_color="white")
         self.voltar_callback = voltar_callback
@@ -137,8 +138,11 @@ class VendaFrame(ctk.CTkFrame):
         cursor.execute("SELECT id, nome FROM servicos WHERE status = 1")
         servicos = cursor.fetchall()
 
-        # Lista de serviços para o ComboBox
+        # Lista de serviços para o ComboBox (apenas os nomes)
         servicos_lista = [servico[1] for servico in servicos]  # Lista com os nomes dos serviços
+
+        # Dicionário para mapear o nome do serviço ao seu ID
+        self.servicos_dict = {servico[1]: servico[0] for servico in servicos}  # {nome: id}
 
         # ComboBox para selecionar o serviço
         self.entry_servico = ctk.CTkOptionMenu(self.form_frame, values=servicos_lista, font=("Verdana", 14), width=400)
@@ -343,36 +347,72 @@ class VendaFrame(ctk.CTkFrame):
                 self.entry_descricao.insert("1.0", produto[2])
 
     def salvar_venda(self):
-        nome = self.entry_nome.get()
-        descricao = self.entry_descricao.get("1.0", "end-1c")  # Pega o conteúdo do campo de texto
+        conexao = sqlite3.connect("dados.db")
+        cursor = conexao.cursor()
 
-        if nome == "" or descricao == "":
-            messagebox.showerror("Erro", "Por favor, preencha todos os campos.")
+        # Coletando os valores dos campos
+        servico_nome = self.entry_servico.get()  # Nome do serviço selecionado
+
+        # Verificando se o serviço foi selecionado
+        if not servico_nome:
+            messagebox.showerror("Erro", "Por favor, selecione um serviço.")
             return
 
+        # Obter o ID do serviço selecionado usando o dicionário servicos_dict
+        servico_id = self.servicos_dict.get(servico_nome)
+
+        # Coletando outros valores
+        valor = self.entry_valor.get()
+        desconto = self.entry_desconto.get()
+        valor_trabalho = self.entry_valor_trabalho.get()
+        valor_material = self.entry_valor_material.get()
+        valor_adicional = self.entry_valor_adicional.get()
+        possui_nota = self.entry_possui_nota.get()  # Esse campo é um checkbox
+        observacao = self.entry_observacao.get("1.0", "end-1c")  # Pega o conteúdo do campo de texto
+
+        # Verificando se algum campo obrigatório está vazio
+        if not servico_id or not valor or not desconto or not valor_trabalho or not valor_material or not valor_adicional:
+            messagebox.showerror("Erro", "Por favor, preencha todos os campos obrigatórios.")
+            return
+
+        # Validação adicional para campos numéricos, se necessário (exemplo para o valor)
+        try:
+            valor = float(valor)
+            desconto = float(desconto)
+            valor_trabalho = float(valor_trabalho)
+            valor_material = float(valor_material)
+            valor_adicional = float(valor_adicional)
+        except ValueError:
+            messagebox.showerror("Erro", "Por favor, insira valores numéricos válidos para os campos de valor.")
+            return
+
+        # Salvando ou atualizando no banco de dados
         if self.editing_product:
-            conexao = sqlite3.connect("dados.db")
-            cursor = conexao.cursor()
             cursor.execute(
-                "UPDATE vendas SET nome = ?, descricao = ? WHERE id = ?",
-                (nome, descricao, self.editing_product[0]),
+                """UPDATE vendas
+                SET id_servico = ?, valor = ?, desconto = ?, valor_trabalho = ?, valor_material = ?, valor_adicional = ?, 
+                    possui_nota = ?, observacao = ?
+                WHERE id = ?""",
+                (servico_id, valor, desconto, valor_trabalho, valor_material, valor_adicional, possui_nota, observacao,
+                 self.editing_product[0])
             )
             conexao.commit()
             conexao.close()
 
-            messagebox.showinfo("Sucesso", "Produto atualizado com sucesso!")
-            self.toggle_form()  # Fecha o formulário após salvar
+            messagebox.showinfo("Sucesso", "Venda atualizada com sucesso!")
         else:
-            conexao = sqlite3.connect("dados.db")
-            cursor = conexao.cursor()
             cursor.execute(
-                "INSERT INTO vendas (nome, descricao, status) VALUES (?, ?, 1)",
-                (nome, descricao),
+                """INSERT INTO vendas (id_servico, valor, desconto, valor_trabalho, valor_material, valor_adicional, 
+                                        possui_nota, observacao, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)""",
+                (servico_id, valor, desconto, valor_trabalho, valor_material, valor_adicional, possui_nota, observacao)
             )
             conexao.commit()
             conexao.close()
 
-            messagebox.showinfo("Sucesso", "Produto adicionado com sucesso!")
-            self.toggle_form()  # Fecha o formulário após salvar
+            messagebox.showinfo("Sucesso", "Venda adicionada com sucesso!")
 
-        self.carregar_vendas()
+        self.toggle_form()  # Fecha o formulário após salvar
+        self.carregar_vendas()  # Carrega as vendas novamente
+
+
