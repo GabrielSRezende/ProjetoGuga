@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk, ImageEnhance
-from ProjetoGuga.Telas.tela_produtos import ProdutoFrame
+from Telas.tela_produtos import ProdutoFrame
 
 
 class MenuFrame(ctk.CTkFrame):

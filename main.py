@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from ProjetoGuga.Telas.tela_menu import MenuFrame
+from Telas.tela_menu import MenuFrame
 from PIL import Image, ImageTk
 from db import inicializar_banco
 

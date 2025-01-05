@@ -204,10 +204,14 @@ class ProdutoFrame(ctk.CTkFrame):
 
             action_frame = ctk.CTkFrame(self.lista_frame, fg_color="white", corner_radius=5, border_width=1,
                                         border_color="gray")
-            action_frame.grid(row=i, column=len(produto), padx=5, pady=5, sticky="e")
+            action_frame.grid(row=i, column=len(produto), padx=5, pady=5, sticky="nsew")
+
+            # Frame interno para centralizar os botões
+            buttons_frame = ctk.CTkFrame(action_frame, fg_color="white")
+            buttons_frame.pack(anchor="center", pady=5)
 
             btn_editar = ctk.CTkButton(
-                action_frame,
+                buttons_frame,
                 text="Editar",
                 width=80,
                 command=lambda p=produto: self.toggle_form(p),
@@ -215,13 +219,13 @@ class ProdutoFrame(ctk.CTkFrame):
             btn_editar.pack(side="left", padx=2)
 
             btn_inativar = ctk.CTkButton(
-                action_frame,
+                buttons_frame,
                 text="Inativar",
                 width=80,
                 fg_color="red",
                 command=lambda p=produto: self.inativar_produto(p[0]),
             )
-            btn_inativar.pack(side="right", padx=2)
+            btn_inativar.pack(side="left", padx=2)
 
         self.page_label.configure(text=f"Página {self.current_page + 1}")
 
@@ -251,15 +255,14 @@ class ProdutoFrame(ctk.CTkFrame):
             self.is_form_visible = False
             self.editing_product = None
         else:
-            # Ajustando a grid para dar mais espaço para o formulário
             self.form_frame.grid(row=2, column=0, padx=10, pady=10, sticky="ew")  # Exibe o formulário
             self.is_form_visible = True
             if produto:
                 self.editing_product = produto
                 self.entry_nome.delete(0, ctk.END)
-                self.entry_descricao.delete(0, ctk.END)
+                self.entry_descricao.delete("1.0", ctk.END)  # Corrigido aqui
                 self.entry_nome.insert(0, produto[1])
-                self.entry_descricao.insert(0, produto[2])
+                self.entry_descricao.insert("1.0", produto[2])
 
     def salvar_produto(self):
         nome = self.entry_nome.get()
