@@ -25,6 +25,7 @@ def inicializar_banco(nome_banco="dados.db"):
             valor_trabalho REAL DEFAULT 0,
             valor_material REAL DEFAULT 0,
             valor_adicional REAL DEFAULT 0,
+            parcelas INTEGER NOT NULL,
             possui_nota BOOLEAN DEFAULT 0,
             data_cadastro TEXT DEFAULT CURRENT_TIMESTAMP,
             status INTEGER DEFAULT 1,

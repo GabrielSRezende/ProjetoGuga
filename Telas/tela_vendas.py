@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox, Toplevel
 import sqlite3
+from Util.formatacao import formatar_para_moeda, remover_formatacao_monetaria
 
 class VendaFrame(ctk.CTkFrame):
     def __init__(self, master, voltar_callback):
@@ -61,8 +62,9 @@ class VendaFrame(ctk.CTkFrame):
         self.lista_frame.grid_columnconfigure(4, weight=2)  # Valor Trabalho
         self.lista_frame.grid_columnconfigure(5, weight=2)  # Valor Material
         self.lista_frame.grid_columnconfigure(6, weight=2)  # Valor Adicional
+        self.lista_frame.grid_columnconfigure(6, weight=1)  # Parcelas
         self.lista_frame.grid_columnconfigure(7, weight=1)  # Possui Nota
-        self.lista_frame.grid_columnconfigure(8, weight=2)  # Data Cadastro
+        self.lista_frame.grid_columnconfigure(8, weight=1)  # Data Cadastro
         self.lista_frame.grid_columnconfigure(9, weight=3)  # Observação
         self.lista_frame.grid_columnconfigure(10, weight=2)  # Ações
 
@@ -152,7 +154,7 @@ class VendaFrame(ctk.CTkFrame):
         self.entry_valor_label = ctk.CTkLabel(self.form_frame, text="Valor", font=("Verdana", 14), text_color="black")
         self.entry_valor_label.grid(row=1, column=0, padx=(10, 5), pady=10, sticky="e")
 
-        # Input para o valor
+        # Input para o valor com máscara
         self.entry_valor = ctk.CTkEntry(self.form_frame, font=("Verdana", 14), width=400)
         self.entry_valor.grid(row=1, column=1, padx=(5, 10), pady=10, sticky="w")
 
@@ -192,33 +194,48 @@ class VendaFrame(ctk.CTkFrame):
         self.entry_valor_adicional = ctk.CTkEntry(self.form_frame, font=("Verdana", 14), width=400)
         self.entry_valor_adicional.grid(row=5, column=1, padx=(5, 10), pady=10, sticky="w")
 
+        # Label para o parcelas
+        self.entry_parcelas_label = ctk.CTkLabel(self.form_frame, text="Quantidade de Parcelas", font=("Verdana", 14),
+                                                       text_color="black")
+        self.entry_parcelas_label.grid(row=6, column=0, padx=(10, 5), pady=10, sticky="e")
+
+        # Input para o parcelas
+        self.entry_parcelas = ctk.CTkEntry(self.form_frame, font=("Verdana", 14), width=400)
+        self.entry_parcelas.grid(row=6, column=1, padx=(5, 10), pady=10, sticky="w")
+
         # Label para o campo "Possui Nota"
         self.entry_possui_nota_label = ctk.CTkLabel(self.form_frame, text="Possui Nota", font=("Verdana", 14),
                                                     text_color="black")
-        self.entry_possui_nota_label.grid(row=6, column=0, padx=(10, 5), pady=10, sticky="e")
+        self.entry_possui_nota_label.grid(row=7, column=0, padx=(10, 5), pady=10, sticky="e")
 
         # Campo para "Possui Nota" (checkbox)
         self.entry_possui_nota = ctk.CTkCheckBox(self.form_frame, font=("Verdana", 14))
-        self.entry_possui_nota.grid(row=6, column=1, padx=(5, 10), pady=10, sticky="w")
+        self.entry_possui_nota.grid(row=7, column=1, padx=(5, 10), pady=10, sticky="w")
 
         # Label para a observação
         self.entry_observacao_label = ctk.CTkLabel(self.form_frame, text="Observação", font=("Verdana", 14),
                                                    text_color="black")
-        self.entry_observacao_label.grid(row=7, column=0, padx=(10, 5), pady=10, sticky="e")
+        self.entry_observacao_label.grid(row=8, column=0, padx=(10, 5), pady=10, sticky="e")
 
         # Campo de texto maior para a observação
         self.entry_observacao = ctk.CTkTextbox(self.form_frame, width=400, height=100, font=("Verdana", 14))
-        self.entry_observacao.grid(row=7, column=1, padx=(5, 10), pady=10, sticky="w")
+        self.entry_observacao.grid(row=8, column=1, padx=(5, 10), pady=10, sticky="w")
+
+        # Vincular evento para formatar como moeda
+        self.entry_valor.bind("<KeyRelease>", formatar_para_moeda)
+        self.entry_valor_trabalho.bind("<KeyRelease>", formatar_para_moeda)
+        self.entry_valor_material.bind("<KeyRelease>", formatar_para_moeda)
+        self.entry_valor_adicional.bind("<KeyRelease>", formatar_para_moeda)
 
         # Botão de salvar
         btn_salvar = ctk.CTkButton(self.form_frame, text="Salvar", width=150, height=40, font=("Verdana", 14),
                                    fg_color="#03c6fc", command=self.salvar_venda)
-        btn_salvar.grid(row=8, column=0, pady=10, padx=5, columnspan=2)
+        btn_salvar.grid(row=9, column=0, pady=10, padx=5, columnspan=2)
 
         # Botão de cancelar
         btn_cancelar = ctk.CTkButton(self.form_frame, text="Cancelar", width=150, height=40, font=("Verdana", 14),
                                      fg_color="#FF6347", command=self.cancelar_formulario)
-        btn_cancelar.grid(row=9, column=0, pady=10, padx=5, columnspan=2)
+        btn_cancelar.grid(row=10, column=0, pady=10, padx=5, columnspan=2)
 
         # Agora, o formulário começa invisível, e será mostrado somente quando necessário
         self.form_frame.grid_remove()  # O formulário começa invisível
@@ -248,45 +265,71 @@ class VendaFrame(ctk.CTkFrame):
 
         # Atualizar a consulta SQL para incluir todos os campos relevantes
         cursor.execute("""
-                    SELECT id, id_servico, valor, desconto, valor_trabalho, valor_material, 
-                           valor_adicional, possui_nota, data_cadastro, observacao
-                    FROM vendas WHERE status = 1
+                    SELECT v.id, s.nome, v.valor, v.desconto, v.valor_trabalho, v.valor_material, 
+                           v.valor_adicional, v.parcelas, v.possui_nota, v.data_cadastro, v.observacao
+                    FROM vendas v
+                    INNER JOIN servicos s ON v.id_servico = s.id
+                    WHERE v.status = 1
                 """)
         vendas = cursor.fetchall()
         conexao.close()
 
         # Cabeçalhos da tabela
         headers = ["ID", "Serviço", "Valor", "Desconto", "Valor Trabalho", "Valor Material",
-                   "Valor Adicional", "Possui Nota", "Data Cadastro", "Observação", "Ações"]
+                   "Valor Adicional", "Parcelas", "Possui Nota", "Data Cadastro", "Observação", "Ações"]
         for col, header in enumerate(headers):
             header_frame = ctk.CTkFrame(self.lista_frame, fg_color="#03c6fc", corner_radius=5)
             header_frame.grid(row=0, column=col, padx=5, pady=5, sticky="ew")
             lbl = ctk.CTkLabel(header_frame, text=header, font=("Verdana", 12, "bold"), text_color="white")
             lbl.pack(padx=5, pady=5)
 
+        # Atualizar a referência de vendas para uso posterior
         self.vendas = vendas
         self.update_table()
 
     def update_table(self):
+        # Limpar widgets existentes (exceto o cabeçalho)
         for widget in self.lista_frame.winfo_children():
             if isinstance(widget, ctk.CTkFrame) and widget.grid_info()['row'] != 0:
                 widget.destroy()
 
+        # Paginação
         start_idx = self.current_page * self.page_size
         end_idx = start_idx + self.page_size
         page_data = self.vendas[start_idx:end_idx]
 
         for i, produto in enumerate(page_data, start=1):
-            for col, valor in enumerate(produto):
+            id_venda, id_servico, valor, desconto, valor_trabalho, valor_material, valor_adicional, parcelas, possui_nota, data_cadastro, observacao = produto
+
+            # Aplicar formatações
+            valor_formatado = f"R$ {valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            desconto_formatado = f"R$ {desconto:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            valor_trabalho_formatado = f"R$ {valor_trabalho:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            valor_material_formatado = f"R$ {valor_material:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            valor_adicional_formatado = f"R$ {valor_adicional:,.2f}".replace(",", "X").replace(".", ",").replace("X",
+                                                                                                                 ".")
+            possui_nota_formatado = "Sim" if possui_nota == 1 else "Não"
+            data_formatada = "/".join(reversed(data_cadastro.split(" ")[0].split("-")))
+
+            # Montar valores formatados para exibição
+            valores = [
+                id_venda, id_servico, valor_formatado, desconto_formatado, valor_trabalho_formatado,
+                valor_material_formatado, valor_adicional_formatado, parcelas, possui_nota_formatado,
+                data_formatada, observacao
+            ]
+
+            # Exibir dados na tabela
+            for col, valor in enumerate(valores):
                 cell_frame = ctk.CTkFrame(self.lista_frame, fg_color="white", corner_radius=5, border_width=1,
                                           border_color="gray")
                 cell_frame.grid(row=i, column=col, padx=5, pady=5, sticky="nsew")
-                lbl = ctk.CTkLabel(cell_frame, text=valor, font=("Verdana", 10), text_color="black")
+                lbl = ctk.CTkLabel(cell_frame, text=str(valor), font=("Verdana", 10), text_color="black")
                 lbl.pack(padx=5, pady=5)
 
+            # Adicionar botões de ação
             action_frame = ctk.CTkFrame(self.lista_frame, fg_color="white", corner_radius=5, border_width=1,
                                         border_color="gray")
-            action_frame.grid(row=i, column=len(produto), padx=5, pady=5, sticky="nsew")
+            action_frame.grid(row=i, column=len(valores), padx=5, pady=5, sticky="nsew")
 
             # Frame interno para centralizar os botões
             buttons_frame = ctk.CTkFrame(action_frame, fg_color="white")
@@ -309,6 +352,7 @@ class VendaFrame(ctk.CTkFrame):
             )
             btn_inativar.pack(side="left", padx=2)
 
+        # Atualizar o texto da página
         self.page_label.configure(text=f"Página {self.current_page + 1}")
 
     def next_page(self):
@@ -341,10 +385,36 @@ class VendaFrame(ctk.CTkFrame):
             self.is_form_visible = True
             if produto:
                 self.editing_product = produto
-                self.entry_nome.delete(0, ctk.END)
-                self.entry_descricao.delete("1.0", ctk.END)  # Corrigido aqui
-                self.entry_nome.insert(0, produto[1])
-                self.entry_descricao.insert("1.0", produto[2])
+
+                # Acessa os elementos da tupla por índice
+                self.entry_servico.set(produto[1])  # Índice 1: servico_nome
+                self.entry_valor.delete(0, ctk.END)
+                self.entry_valor.insert(0, produto[2])  # Índice 2: valor
+
+                self.entry_desconto.delete(0, ctk.END)
+                self.entry_desconto.insert(0, produto[3])  # Índice 3: desconto
+
+                self.entry_valor_trabalho.delete(0, ctk.END)
+                self.entry_valor_trabalho.insert(0, produto[4])  # Índice 4: valor_trabalho
+
+                self.entry_valor_material.delete(0, ctk.END)
+                self.entry_valor_material.insert(0, produto[5])  # Índice 5: valor_material
+
+                self.entry_valor_adicional.delete(0, ctk.END)
+                self.entry_valor_adicional.insert(0, produto[6])  # Índice 6: valor_adicional
+
+                self.entry_parcelas.delete(0, ctk.END)
+                self.entry_parcelas.insert(0, produto[7])  # Índice 7: parcelas
+
+                # Checkbox "Possui Nota"
+                if produto[8]:  # Índice 8: possui_nota
+                    self.entry_possui_nota.select()
+                else:
+                    self.entry_possui_nota.deselect()
+
+                # Observação
+                self.entry_observacao.delete("1.0", ctk.END)
+                self.entry_observacao.insert("1.0", produto[10])  # Índice 9: observacao
 
     def salvar_venda(self):
         conexao = sqlite3.connect("dados.db")
@@ -361,21 +431,22 @@ class VendaFrame(ctk.CTkFrame):
         # Obter o ID do serviço selecionado usando o dicionário servicos_dict
         servico_id = self.servicos_dict.get(servico_nome)
 
-        # Coletando outros valores
-        valor = self.entry_valor.get()
-        desconto = self.entry_desconto.get()
-        valor_trabalho = self.entry_valor_trabalho.get()
-        valor_material = self.entry_valor_material.get()
-        valor_adicional = self.entry_valor_adicional.get()
+        # Coletando outros valores e removendo a formatação monetária
+        valor = remover_formatacao_monetaria(self.entry_valor.get())
+        desconto = remover_formatacao_monetaria(self.entry_desconto.get())
+        valor_trabalho = remover_formatacao_monetaria(self.entry_valor_trabalho.get())
+        valor_material = remover_formatacao_monetaria(self.entry_valor_material.get())
+        valor_adicional = remover_formatacao_monetaria(self.entry_valor_adicional.get())
+        parcelas = self.entry_parcelas.get()
         possui_nota = self.entry_possui_nota.get()  # Esse campo é um checkbox
         observacao = self.entry_observacao.get("1.0", "end-1c")  # Pega o conteúdo do campo de texto
 
         # Verificando se algum campo obrigatório está vazio
-        if not servico_id or not valor or not desconto or not valor_trabalho or not valor_material or not valor_adicional:
+        if not servico_id or valor == 0 or desconto == 0 or valor_trabalho == 0 or valor_material == 0 or valor_adicional == 0:
             messagebox.showerror("Erro", "Por favor, preencha todos os campos obrigatórios.")
             return
 
-        # Validação adicional para campos numéricos, se necessário (exemplo para o valor)
+        # Validação adicional para campos numéricos
         try:
             valor = float(valor)
             desconto = float(desconto)
@@ -391,9 +462,10 @@ class VendaFrame(ctk.CTkFrame):
             cursor.execute(
                 """UPDATE vendas
                 SET id_servico = ?, valor = ?, desconto = ?, valor_trabalho = ?, valor_material = ?, valor_adicional = ?, 
-                    possui_nota = ?, observacao = ?
+                    parcelas = ?, possui_nota = ?, observacao = ?
                 WHERE id = ?""",
-                (servico_id, valor, desconto, valor_trabalho, valor_material, valor_adicional, possui_nota, observacao,
+                (servico_id, valor, desconto, valor_trabalho, valor_material, valor_adicional, parcelas, possui_nota,
+                 observacao,
                  self.editing_product[0])
             )
             conexao.commit()
@@ -403,9 +475,10 @@ class VendaFrame(ctk.CTkFrame):
         else:
             cursor.execute(
                 """INSERT INTO vendas (id_servico, valor, desconto, valor_trabalho, valor_material, valor_adicional, 
-                                        possui_nota, observacao, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 1)""",
-                (servico_id, valor, desconto, valor_trabalho, valor_material, valor_adicional, possui_nota, observacao)
+                                        parcelas, possui_nota, observacao, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)""",
+                (servico_id, valor, desconto, valor_trabalho, valor_material, valor_adicional, parcelas, possui_nota,
+                 observacao)
             )
             conexao.commit()
             conexao.close()
@@ -414,5 +487,6 @@ class VendaFrame(ctk.CTkFrame):
 
         self.toggle_form()  # Fecha o formulário após salvar
         self.carregar_vendas()  # Carrega as vendas novamente
+
 
 
