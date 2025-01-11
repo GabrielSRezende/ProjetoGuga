@@ -2,9 +2,17 @@ import customtkinter as ctk
 from Telas.tela_menu import MenuFrame
 from PIL import Image, ImageTk
 from db import inicializar_banco
+from Util.path import get_resource_path
+import sys
+import os
 
 # Inicializar o banco de dados
 inicializar_banco()
+
+def get_resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    base_path = getattr(sys, '_MEIPASS', os.path.dirname(os.path.abspath(__file__)))
+    return os.path.join(base_path, relative_path)
 
 def iniciar():
     frame_atual.mostrar_menu()
@@ -18,7 +26,9 @@ ctk.set_default_color_theme("blue")  # Tema de cores
 
 app = ctk.CTk()
 app.title("Apresentação")
-app.attributes('-fullscreen', True)
+
+app.state('zoomed')
+
 app.configure(fg_color="white")  # Define o fundo do sistema como branco
 
 class TelaInicial(ctk.CTkFrame):
@@ -39,7 +49,8 @@ class TelaInicial(ctk.CTkFrame):
             widget.destroy()
 
         # Carrega a imagem da capa
-        image = Image.open("Imgs/capa.png")
+        image_path = get_resource_path("Imgs/capa.png")
+        image = Image.open(image_path)
         screen_width = self.winfo_screenwidth()
         original_width, original_height = image.size
         aspect_ratio = original_height / original_width

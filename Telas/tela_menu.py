@@ -2,6 +2,7 @@ import customtkinter as ctk
 from PIL import Image, ImageTk, ImageEnhance
 from Telas.tela_servicos import ServicoFrame
 from Telas.tela_vendas import VendaFrame
+from Util.path import get_resource_path
 
 
 class MenuFrame(ctk.CTkFrame):
@@ -33,9 +34,10 @@ class MenuFrame(ctk.CTkFrame):
         # Carregar as imagens e criar versões escurecidas para hover
         images = {}
         for text, _ in buttons:
-            # Caminho da imagem original
-            image_path = f"Imgs/{text.lower()}.png"
+            # Caminho adaptado para localizar as imagens
+            image_path = get_resource_path(f"Imgs/{text.lower()}.png")
             original_image = Image.open(image_path)
+            images[text] = original_image
 
             # Manter proporção original com largura máxima de 200
             max_width = 200
