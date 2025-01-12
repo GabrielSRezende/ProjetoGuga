@@ -26,10 +26,17 @@ ctk.set_default_color_theme("blue")  # Tema de cores
 
 app = ctk.CTk()
 app.title("Apresentação")
-
-app.state('zoomed')
-
 app.configure(fg_color="white")  # Define o fundo do sistema como branco
+
+# Coloca a janela em modo full-screen
+app.attributes('-fullscreen', True)
+
+# Obtendo a resolução da tela para garantir que a janela ocupe toda a tela
+screen_width = app.winfo_screenwidth()
+screen_height = app.winfo_screenheight()
+
+# Definindo explicitamente o tamanho da janela (opcional, pois já está no modo fullscreen)
+app.geometry(f"{screen_width}x{screen_height}+0+0")
 
 class TelaInicial(ctk.CTkFrame):
     def __init__(self, master):
