@@ -2,6 +2,7 @@ import customtkinter as ctk
 from PIL import Image, ImageTk, ImageEnhance
 from Telas.tela_servicos import ServicoFrame
 from Telas.tela_vendas import VendaFrame
+from Telas.tela_graficos import GraficoFrame
 from Util.path import get_resource_path
 
 
@@ -122,7 +123,9 @@ class MenuFrame(ctk.CTkFrame):
         self.tela_produtos.pack(fill="both", expand=True)
 
     def abrir_graficos(self):
-        print("Abrindo Gráficos...")
+        self.pack_forget()  # Esconde o menu atual
+        self.tela_graficos = GraficoFrame(master=self.master, voltar_callback=self.mostrar_menu)
+        self.tela_graficos.pack(fill="both", expand=True)
 
     def abrir_ajuda(self):
         print("Abrindo Ajuda...")
